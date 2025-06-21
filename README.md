@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chatbot Frontend
+
+A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. This application features integration with OpenAI's GPT models and multiple search engines.
+
+## Features
+
+- Modern chat interface with real-time responses
+- Voice input/output support
+- Multiple search engine integration (Google and Bing)
+- Configurable settings for AI model parameters
+- Responsive design with Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   npm install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Create a `.env.local` file with your API keys:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```env
+   NEXT_PUBLIC_OPENAI_API_KEY=your_openai_api_key
+   NEXT_PUBLIC_GOOGLE_API_KEY=your_google_api_key
+   NEXT_PUBLIC_GOOGLE_CX=your_google_cx
+   NEXT_PUBLIC_BING_API_KEY=your_bing_api_key
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
 
-## Learn More
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/src/components` - React components
+  - `ChatInterface.tsx` - Main chat interface
+  - `SettingsComponent.tsx` - Settings panel
+- `/src/lib` - Utility functions and services
+  - `openai.ts` - OpenAI API integration
+  - `search.ts` - Search engines integration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Technologies Used
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 13+ with App Router
+- TypeScript
+- Tailwind CSS
+- OpenAI API
+- Google Custom Search API
+- Bing Web Search API
+- HeadlessUI for UI components
+- React Hot Toast for notifications
