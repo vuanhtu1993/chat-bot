@@ -18,10 +18,18 @@ export default function ChatInterface() {
   const openAIService = useRef<OpenAIService | null>(null);
 
   useEffect(() => {
-    // Initialize OpenAI service
+    // Initialize OpenAI service with Google search capabilities
     const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    const googleCx = process.env.NEXT_PUBLIC_GOOGLE_CX;
+
     if (apiKey) {
-      openAIService.current = new OpenAIService(apiKey);
+      openAIService.current = new OpenAIService(
+        apiKey,
+        googleApiKey?.toString() || '',
+        googleCx?.toString() || '',
+        { functions: true }
+      );
     } else {
       console.error('OpenAI API key not found');
     }
@@ -52,14 +60,32 @@ export default function ChatInterface() {
       // Get conversation context (last 5 messages)
       const context = messages.slice(-5).map(msg => msg.content);
 
-      // Call OpenAI API
+      // Hiển thị thông báo nếu chatbot đang tìm kiếm thông tin
+      const processingMessage = {
+        role: 'assistant',
+        content: '⌛ Đang tìm kiếm thông tin...'
+      } as Message;
+      setMessages(prev => [...prev, processingMessage]);
+
+      // Call OpenAI API (with function calling)
       const response = await openAIService.current.sendMessage(input, context);
 
-      const assistantMessage = { role: 'assistant', content: response } as Message;
-      setMessages(prev => [...prev, assistantMessage]);
+      // Replace the processing message with the actual response
+      setMessages(prev => {
+        const updatedMessages = [...prev];
+        updatedMessages[updatedMessages.length - 1] = {
+          role: 'assistant',
+          content: response
+        } as Message;
+        return updatedMessages;
+      });
+
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error sending message');
+
+      // Remove the processing message if there was an error
+      setMessages(prev => prev.filter(msg => msg.content !== '⌛ Đang tìm kiếm thông tin...'));
     } finally {
       setIsLoading(false);
     }
