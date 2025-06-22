@@ -9,6 +9,8 @@ A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. Thi
 - Multiple search engine integration (Google and Bing)
 - Configurable settings for AI model parameters
 - Responsive design with Tailwind CSS
+- Persistent chat history with MongoDB
+- MongoDB connection check at startup
 
 ## Getting Started
 
@@ -26,6 +28,7 @@ A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. Thi
    NEXT_PUBLIC_GOOGLE_API_KEY=your_google_api_key
    NEXT_PUBLIC_GOOGLE_CX=your_google_cx
    NEXT_PUBLIC_BING_API_KEY=your_bing_api_key
+   MONGODB_URI=your_mongodb_connection_string
    ```
 
 4. Run the development server:
@@ -33,6 +36,8 @@ A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. Thi
    ```bash
    npm run dev
    ```
+
+   Note: The server will check the MongoDB connection at startup and log the result to the terminal.
 
 ## Project Structure
 
@@ -42,6 +47,12 @@ A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. Thi
 - `/src/lib` - Utility functions and services
   - `openai.ts` - OpenAI API integration
   - `search.ts` - Search engines integration
+  - `/db` - Database utilities
+    - `mongodb.ts` - MongoDB client setup
+    - `chatHistory.ts` - Chat history services
+    - `initMongoDB.ts` - MongoDB initialization and connection verification
+- `/scripts` - Utility scripts
+  - `checkMongoDB.js` - MongoDB connection check script
 
 ## Technologies Used
 
@@ -53,3 +64,4 @@ A modern chatbot interface built with Next.js, TypeScript, and Tailwind CSS. Thi
 - Bing Web Search API
 - HeadlessUI for UI components
 - React Hot Toast for notifications
+- MongoDB for chat history persistence

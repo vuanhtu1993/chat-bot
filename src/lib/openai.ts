@@ -4,17 +4,24 @@ interface OpenAIConfig {
   model: string;
   temperature: number;
   functions?: boolean;
+  saveHistory?: boolean;
 }
 
 const defaultConfig: OpenAIConfig = {
   model: 'gpt-4.1-nano',
   temperature: 0.7,
   functions: true,
+  saveHistory: true,
 };
 
 interface FunctionCall {
   name: string;
   arguments: any;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system' | 'function';
+  content: string;
 }
 
 // Define các function có thể gọi từ OpenAI
@@ -71,6 +78,7 @@ export class OpenAIService {
   private apiKey: string;
   private googleApiKey: string;
   private googleCx: string;
+  private sessionId: string | null = null;
 
   constructor(
     apiKey: string,
@@ -84,8 +92,106 @@ export class OpenAIService {
     this.config = { ...defaultConfig, ...config };
   }
 
+  /**
+   * Set session ID for saving chat history
+   */
+  setSessionId(sessionId: string) {
+    this.sessionId = sessionId;
+  }
+
+  /**
+   * Get current session ID
+   */
+  getSessionId() {
+    return this.sessionId;
+  }
+
+  /**
+   * Create a new session and return its ID
+   */
+  async createNewSession(): Promise<string> {
+    try {
+      const response = await axios.post('/api/chat', {
+        role: 'system',
+        content: 'Bắt đầu cuộc trò chuyện mới'
+      });
+
+      this.sessionId = response.data.sessionId;
+      if (!this.sessionId) {
+        throw new Error('Session ID not returned from server');
+      }
+      return this.sessionId;
+    } catch (error) {
+      console.error('Error creating session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save message to chat history
+   */
+  private async saveToChatHistory(role: 'user' | 'assistant' | 'system' | 'function', content: string) {
+    if (!this.config.saveHistory) return;
+
+    try {
+      // Đảm bảo có sessionId trước khi lưu tin nhắn
+      if (!this.sessionId) {
+        const response = await axios.post('/api/chat', {
+          role: 'system',
+          content: 'Bắt đầu cuộc trò chuyện mới'
+        });
+
+        this.sessionId = response.data.sessionId;
+        if (!this.sessionId) {
+          throw new Error('Failed to create new session');
+        }
+      }
+
+      // Lưu tin nhắn vào database
+      await axios.post('/api/chat', {
+        sessionId: this.sessionId,
+        role,
+        content
+      });
+    } catch (error) {
+      console.error('Error saving to chat history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load chat history from a session
+   */
+  async loadChatHistory(sessionId: string): Promise<ChatMessage[]> {
+    try {
+      this.sessionId = sessionId;
+
+      const response = await axios.get(`/api/chat?sessionId=${sessionId}`);
+      return response.data.messages || [];
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all chat sessions
+   */
+  async getChatSessions(): Promise<any[]> {
+    try {
+      const response = await axios.get('/api/chat');
+      return response.data.sessions || [];
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+      return [];
+    }
+  }
+
   async sendMessage(message: string, context: string[] = []) {
     try {
+      // Save user message to history first
+      await this.saveToChatHistory('user', message);
+
       const payload: any = {
         model: this.config.model,
         messages: [
@@ -120,6 +226,12 @@ export class OpenAIService {
         const functionCall = responseMessage.function_call;
         const functionName = functionCall.name;
         const functionArgs = JSON.parse(functionCall.arguments);
+
+        // Save function call to history
+        await this.saveToChatHistory(
+          'function',
+          `Function ${functionName} called with args: ${JSON.stringify(functionArgs)}`
+        );
 
         let functionResponse: any = null;
 
@@ -157,8 +269,16 @@ export class OpenAIService {
           }
         );
 
-        return secondResponse.data.choices[0].message.content;
+        const finalResponse = secondResponse.data.choices[0].message.content;
+
+        // Save assistant response to history
+        await this.saveToChatHistory('assistant', finalResponse);
+
+        return finalResponse;
       }
+
+      // Save assistant response to history
+      await this.saveToChatHistory('assistant', responseMessage.content);
 
       return responseMessage.content;
     } catch (error) {
