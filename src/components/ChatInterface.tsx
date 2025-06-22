@@ -28,24 +28,14 @@ export default function ChatInterface() {
   const openAIService = useRef<OpenAIService | null>(null);
 
   useEffect(() => {
-    // Initialize OpenAI service with Google search capabilities
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    const googleCx = process.env.NEXT_PUBLIC_GOOGLE_CX;
+    // Initialize OpenAI service
+    openAIService.current = new OpenAIService({
+      functions: true,
+      saveHistory: true
+    });
 
-    if (apiKey) {
-      openAIService.current = new OpenAIService(
-        apiKey,
-        googleApiKey?.toString() || '',
-        googleCx?.toString() || '',
-        { functions: true, saveHistory: true }
-      );
-
-      // Load chat sessions
-      loadSessions();
-    } else {
-      console.error('OpenAI API key not found');
-    }
+    // Load chat sessions
+    loadSessions();
   }, []);
 
   const loadSessions = async () => {
@@ -113,7 +103,7 @@ export default function ChatInterface() {
 
     try {
       setIsLoading(true);
-      
+
       if (!openAIService.current) {
         throw new Error('OpenAI service not initialized');
       }
@@ -164,7 +154,7 @@ export default function ChatInterface() {
       toast.error('Error sending message');
 
       // Remove processing message on error
-      setMessages(prev => 
+      setMessages(prev =>
         prev.filter(msg => msg.content !== '⌛ Đang tìm kiếm thông tin...')
       );
     } finally {
@@ -173,54 +163,59 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex justify-between items-center p-2 border-b">
+    <div className="flex flex-col h-full">
+      {/* Header - Now more touch-friendly */}
+      <div className="flex justify-between items-center p-3 md:p-4 border-b bg-white shadow-sm">
         <button
-          className="p-2 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
           onClick={() => setShowSessions(!showSessions)}
         >
           <DocumentTextIcon className="w-6 h-6 text-gray-600" />
         </button>
-        <h1 className="text-xl font-semibold">Goodboy Chatbot</h1>
+        <h1 className="text-lg md:text-xl font-semibold">Lạc Chatbot</h1>
         <button
-          className="p-2 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
           onClick={startNewSession}
         >
           <ArrowPathIcon className="w-6 h-6 text-red-600" />
         </button>
       </div>
 
+      {/* Chat Sessions List - Now more touch-friendly */}
       {showSessions ? (
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto bg-white p-3 md:p-4">
           <h2 className="text-lg font-medium mb-4">Lịch sử trò chuyện</h2>
           {sessions.length > 0 ? (
             <ul className="space-y-2">
               {sessions.map(session => (
-                <li key={session._id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => loadSession(session._id)}>
-                  <h3 className="font-medium">{session.title}</h3>
-                  <p className="text-sm text-gray-500">
+                <li
+                  key={session._id}
+                  className="border rounded-lg p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer touch-manipulation"
+                  onClick={() => loadSession(session._id)}
+                >
+                  <h3 className="font-medium text-base md:text-lg">{session.title}</h3>
+                  <p className="text-sm text-gray-500 mt-1">
                     {new Date(session.updatedAt).toLocaleString()}
                   </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">Không có lịch sử trò chuyện</p>
+            <p className="text-gray-500 text-center py-4">Không có lịch sử trò chuyện</p>
           )}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        /* Chat Messages - Now more touch-friendly */
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-3 md:p-4 space-y-4">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-800'
+                className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-3 md:p-4 ${message.role === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-800 shadow-sm'
                   }`}
               >
                 {message.content}
@@ -231,13 +226,14 @@ export default function ChatInterface() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="p-4 border-t">
+      {/* Input Form - Now more touch-friendly */}
+      <form onSubmit={handleSubmit} className="p-3 md:p-4 border-t bg-white">
         <div className="flex items-center space-x-2">
           <button
             type="button"
-            className="p-2 text-gray-500 hover:text-gray-700"
+            className="p-2 text-gray-500 hover:text-gray-700 active:text-gray-900 transition-colors touch-manipulation"
             onClick={() => {
-              // Implement voice input
+              // Voice input implementation
             }}
           >
             <MicrophoneIcon className="w-6 h-6" />
@@ -246,13 +242,13 @@ export default function ChatInterface() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Nhập tin nhắn..."
+            className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
             disabled={isLoading || showSessions}
           />
           <button
             type="submit"
-            className="p-2 text-blue-500 hover:text-blue-700 disabled:opacity-50"
+            className="p-2 text-blue-500 hover:text-blue-700 active:text-blue-900 transition-colors disabled:opacity-50 touch-manipulation"
             disabled={isLoading || showSessions || !input.trim()}
           >
             <PaperAirplaneIcon className="w-6 h-6" />

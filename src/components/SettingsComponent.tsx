@@ -20,19 +20,14 @@ export default function SettingsComponent() {
     voiceEnabled: true,
   });
 
-  const saveSettings = () => {
-    localStorage.setItem('chatbot-settings', JSON.stringify(settings));
-    setIsOpen(false);
-    // Implement settings update logic here
-  };
-
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+        className="p-2 rounded-full bg-white shadow-lg hover:bg-gray-50 transition-colors duration-200 active:scale-95 touch-manipulation"
+        aria-label="Open Settings"
       >
-        <Cog6ToothIcon className="w-6 h-6" />
+        <Cog6ToothIcon className="w-6 h-6 text-gray-600" />
       </button>
 
       <Dialog
@@ -40,32 +35,39 @@ export default function SettingsComponent() {
         onClose={() => setIsOpen(false)}
         className="relative z-50"
       >
+        {/* Backdrop */}
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
 
+        {/* Full-screen container for mobile */}
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="w-full max-w-md bg-white rounded-lg p-6">
-            <Dialog.Title className="text-lg font-medium mb-4">Settings</Dialog.Title>
+          <Dialog.Panel className="w-full max-w-sm md:max-w-md rounded-lg bg-white p-4 md:p-6">
+            <Dialog.Title className="text-lg md:text-xl font-medium mb-4">
+              Cài đặt
+            </Dialog.Title>
 
             <div className="space-y-4">
+              {/* Model Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  OpenAI Model
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Model
                 </label>
                 <select
                   value={settings.openAIModel}
                   onChange={(e) =>
                     setSettings({ ...settings, openAIModel: e.target.value })
                   }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full p-2 border rounded-md text-base touch-manipulation"
                 >
-                  <option value="gpt-4o-mini">gpt-4o-mini</option>
-                  <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+                  <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                 </select>
               </div>
 
+              {/* Temperature Slider */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Temperature
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Temperature: {settings.temperature}
                 </label>
                 <input
                   type="range"
@@ -79,58 +81,64 @@ export default function SettingsComponent() {
                       temperature: parseFloat(e.target.value),
                     })
                   }
-                  className="mt-1 block w-full"
+                  className="w-full touch-manipulation"
                 />
-                <span className="text-sm text-gray-500">
-                  {settings.temperature}
-                </span>
               </div>
 
+              {/* Search Engine Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Search Engine
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Công cụ tìm kiếm
                 </label>
                 <select
                   value={settings.searchEngine}
                   onChange={(e) =>
                     setSettings({ ...settings, searchEngine: e.target.value })
                   }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full p-2 border rounded-md text-base touch-manipulation"
                 >
                   <option value="google">Google</option>
                   <option value="bing">Bing</option>
                 </select>
               </div>
 
+              {/* Voice Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
-                  Voice Input/Output
+                  Hỗ trợ giọng nói
                 </span>
                 <button
                   onClick={() =>
-                    setSettings({ ...settings, voiceEnabled: !settings.voiceEnabled })
+                    setSettings({
+                      ...settings,
+                      voiceEnabled: !settings.voiceEnabled,
+                    })
                   }
                   className={`${settings.voiceEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                    } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors touch-manipulation`}
                 >
                   <span
                     className={`${settings.voiceEnabled ? 'translate-x-6' : 'translate-x-1'
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out mt-1`}
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                   />
                 </button>
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 touch-manipulation"
               >
                 Cancel
               </button>
               <button
-                onClick={saveSettings}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={() => {
+                  // Save settings logic here
+                  setIsOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 touch-manipulation"
               >
                 Save
               </button>

@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 interface OpenAIConfig {
-  model: string;
-  temperature: number;
+  model?: string;
+  temperature?: number;
   functions?: boolean;
   saveHistory?: boolean;
 }
@@ -19,30 +19,33 @@ interface ChatMessage {
   content: string;
 }
 
-// Define các function có thể gọi từ OpenAI
+// Define the functions that can be called
 export const availableFunctions = {
-  search_google: async (args: { query: string, googleApiKey: string, googleCx: string }): Promise<any> => {
-    const { query, googleApiKey, googleCx } = args;
+  search_google: async (args: { query: string }): Promise<any> => {
     try {
-      const response = await axios.get(
-        `https://www.googleapis.com/customsearch/v1`,
-        {
-          params: {
-            key: googleApiKey,
-            cx: googleCx,
-            q: query,
-          },
+      const response = await axios.post('/api/chat-completion', {
+        messages: [
+          { role: 'user', content: args.query }
+        ],
+        config: {
+          functions: [{
+            name: 'search_google',
+            description: 'Search Google for real-time information',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search query',
+                },
+              },
+              required: ['query'],
+            },
+          }],
         }
-      );
+      });
 
-      return {
-        results: response.data.items?.map((item: any) => ({
-          title: item.title,
-          link: item.link,
-          snippet: item.snippet,
-        })) || [],
-        totalResults: response.data.searchInformation?.totalResults || 0,
-      };
+      return response.data.functionCall?.result || { results: [], totalResults: 0 };
     } catch (error) {
       console.error('Error searching Google:', error);
       return { results: [], totalResults: 0, error: 'Error searching Google' };
@@ -50,40 +53,11 @@ export const availableFunctions = {
   }
 };
 
-// Định nghĩa các function để gửi tới OpenAI
-const functionDefinitions = [
-  {
-    name: 'search_google',
-    description: 'Tìm kiếm thông tin trên Google để truy cập dữ liệu thời gian thực',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: 'Chuỗi tìm kiếm, ví dụ "thời tiết tại Hà Nội"',
-        },
-      },
-      required: ['query'],
-    },
-  },
-];
-
 export class OpenAIService {
   private config: OpenAIConfig;
-  private apiKey: string;
-  private googleApiKey: string;
-  private googleCx: string;
   private sessionId: string | null = null;
 
-  constructor(
-    apiKey: string,
-    googleApiKey: string = '',
-    googleCx: string = '',
-    config: Partial<OpenAIConfig> = {}
-  ) {
-    this.apiKey = apiKey;
-    this.googleApiKey = googleApiKey;
-    this.googleCx = googleCx;
+  constructor(config: Partial<OpenAIConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
   }
 
@@ -182,97 +156,53 @@ export class OpenAIService {
       // Save user message to history first
       await this.saveToChatHistory('user', message);
 
-      const payload: any = {
-        model: this.config.model,
-        messages: [
-          { role: 'system', content: 'You are Trợ lý cá nhân của Anh Tú, a helpful AI assistant. Use the search_google function when you need real-time information or need to verify facts.' },
-          ...context.map(msg => ({ role: 'user', content: msg })),
-          { role: 'user', content: message }
-        ],
-        temperature: this.config.temperature,
-      };
-
-      // Thêm function calling nếu được bật
-      if (this.config.functions) {
-        payload.functions = functionDefinitions;
-        payload.function_call = 'auto'; // cho phép model tự quyết định khi nào gọi function
-      }
-
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        payload,
+      const messages = [
         {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+          role: 'system',
+          content: 'You are Trợ lý cá nhân của Anh Tú, a helpful AI assistant. Use the search_google function when you need real-time information or need to verify facts.'
+        },
+        ...context.map(msg => ({ role: 'user', content: msg })),
+        { role: 'user', content: message }
+      ];
 
-      const responseMessage = response.data.choices[0].message;
-
-      // Xử lý function calling nếu có
-      if (responseMessage.function_call) {
-        const functionCall = responseMessage.function_call;
-        const functionName = functionCall.name;
-        const functionArgs = JSON.parse(functionCall.arguments);
-
-        // Save function call to history
-        await this.saveToChatHistory(
-          'function',
-          `Function ${functionName} called with args: ${JSON.stringify(functionArgs)}`
-        );
-
-        let functionResponse: any = null;
-
-        if (functionName === 'search_google') {
-          functionResponse = await availableFunctions.search_google({
-            query: functionArgs.query,
-            googleApiKey: this.googleApiKey,
-            googleCx: this.googleCx
-          });
-        }
-
-        // Gửi kết quả function call lại cho OpenAI để nhận phản hồi cuối cùng
-        const secondResponse = await axios.post(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            model: this.config.model,
-            messages: [
-              { role: 'system', content: 'You are Trợ lý cá nhân của Anh Tú, a helpful AI assistant.' },
-              ...context.map(msg => ({ role: 'user', content: msg })),
-              { role: 'user', content: message },
-              responseMessage,
-              {
-                role: 'function',
-                name: functionName,
-                content: JSON.stringify(functionResponse)
-              }
-            ],
-            temperature: this.config.temperature,
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json',
+      const response = await axios.post('/api/chat-completion', {
+        messages,
+        config: {
+          model: this.config.model,
+          temperature: this.config.temperature,
+          functions: this.config.functions ? [{
+            name: 'search_google',
+            description: 'Search Google for real-time information',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search query',
+                },
+              },
+              required: ['query'],
             },
-          }
-        );
+          }] : undefined,
+        }
+      });
 
-        const finalResponse = secondResponse.data.choices[0].message.content;
-
-        // Save assistant response to history
-        await this.saveToChatHistory('assistant', finalResponse);
-
-        return finalResponse;
-      }
+      const finalResponse = response.data.response;
 
       // Save assistant response to history
-      await this.saveToChatHistory('assistant', responseMessage.content);
+      await this.saveToChatHistory('assistant', finalResponse);
 
-      return responseMessage.content;
+      // If there was a function call, save that to history too
+      if (response.data.functionCall) {
+        await this.saveToChatHistory(
+          'function',
+          `Function ${response.data.functionCall.name} called with args: ${JSON.stringify(response.data.functionCall.args)}`
+        );
+      }
+
+      return finalResponse;
     } catch (error) {
-      console.error('Error calling OpenAI API:', error);
+      console.error('Error calling chat API:', error);
       throw error;
     }
   }
