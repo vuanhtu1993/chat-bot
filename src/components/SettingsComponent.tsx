@@ -11,7 +11,11 @@ interface Settings {
   voiceEnabled: boolean;
 }
 
-export default function SettingsComponent() {
+interface SettingsComponentProps {
+  onClose?: () => void;
+}
+
+export default function SettingsComponent({ onClose }: SettingsComponentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     openAIModel: 'gpt-4.1-nano',
@@ -19,6 +23,11 @@ export default function SettingsComponent() {
     searchEngine: 'google',
     voiceEnabled: true,
   });
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
 
   return (
     <>
@@ -31,8 +40,8 @@ export default function SettingsComponent() {
       </button>
 
       <Dialog
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
+        open={isOpen || !!onClose}
+        onClose={handleClose}
         className="relative z-50"
       >
         {/* Backdrop */}
@@ -128,19 +137,19 @@ export default function SettingsComponent() {
             {/* Action Buttons */}
             <div className="mt-6 flex justify-end space-x-3">
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 touch-manipulation"
               >
-                Cancel
+                Đóng
               </button>
               <button
                 onClick={() => {
                   // Save settings logic here
-                  setIsOpen(false);
+                  handleClose();
                 }}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 touch-manipulation"
               >
-                Save
+                Lưu
               </button>
             </div>
           </Dialog.Panel>

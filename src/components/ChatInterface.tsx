@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, MicrophoneIcon, ArrowPathIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import {
+  PaperAirplaneIcon,
+  MicrophoneIcon,
+  ArrowPathIcon,
+  Bars3Icon,
+  ChatBubbleBottomCenterTextIcon
+} from '@heroicons/react/24/outline';
+import { Menu } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import { OpenAIService } from '@/lib/openai';
+import SettingsComponent from './SettingsComponent';
 
 interface Message {
   role: 'user' | 'assistant' | 'system' | 'function';
@@ -24,6 +32,7 @@ export default function ChatInterface() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = useState<string | null>(null);
   const [showSessions, setShowSessions] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const openAIService = useRef<OpenAIService | null>(null);
 
@@ -164,22 +173,47 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header - Now more touch-friendly */}
+      {/* Header with dropdown menu */}
       <div className="flex justify-between items-center p-3 md:p-4 border-b bg-white shadow-sm">
-        <button
-          className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
-          onClick={() => setShowSessions(!showSessions)}
-        >
-          <DocumentTextIcon className="w-6 h-6 text-gray-600" />
-        </button>
+        <Menu as="div" className="relative">
+          <Menu.Button className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation">
+            <Bars3Icon className="w-6 h-6 text-gray-600" />
+          </Menu.Button>
+          <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+            <div className="px-1 py-1">
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setShowSessions(!showSessions)}
+                    className={`${active ? 'bg-gray-100' : ''
+                      } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
+                  >
+                    <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-3 text-gray-600" />
+                    Lịch sử trò chuyện
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={startNewSession}
+                    className={`${active ? 'bg-gray-100' : ''
+                      } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
+                  >
+                    <ArrowPathIcon className="w-5 h-5 mr-3 text-red-600" />
+                    Tạo cuộc trò chuyện mới
+                  </button>
+                )}
+              </Menu.Item>
+            </div>
+          </Menu.Items>
+        </Menu>
         <h1 className="text-lg md:text-xl font-semibold">Lạc Chatbot</h1>
-        <button
-          className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
-          onClick={startNewSession}
-        >
-          <ArrowPathIcon className="w-6 h-6 text-red-600" />
-        </button>
+        <div className="w-10" /> {/* Spacer to balance the header */}
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && <SettingsComponent onClose={() => setShowSettings(false)} />}
 
       {/* Chat Sessions List - Now more touch-friendly */}
       {showSessions ? (
@@ -214,8 +248,8 @@ export default function ChatInterface() {
             >
               <div
                 className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-3 md:p-4 ${message.role === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-800 shadow-sm'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-800 shadow-sm'
                   }`}
               >
                 {message.content}
