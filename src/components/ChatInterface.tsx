@@ -10,20 +10,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { Menu } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
-import { OpenAIService } from '@/lib/openai';
+import { OpenAIService } from '@/services/openai';
 import SettingsComponent from './SettingsComponent';
-
-interface Message {
-  role: 'user' | 'assistant' | 'system' | 'function';
-  content: string;
-  timestamp?: Date;
-}
-
-interface ChatSession {
-  _id: string;
-  title: string;
-  updatedAt: Date;
-}
+import { Message, ChatSession, PROCESSING_MESSAGE } from '@/types/chat.types';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,13 +37,20 @@ export default function ChatInterface() {
   }, []);
 
   const loadSessions = async () => {
-    if (!openAIService.current) return;
+    if (!openAIService.current) {
+      console.error('OpenAI service not initialized');
+      return;
+    }
 
     try {
       const chatSessions = await openAIService.current.getChatSessions();
+      if (!Array.isArray(chatSessions)) {
+        throw new Error('Invalid sessions data received');
+      }
       setSessions(chatSessions);
     } catch (error) {
       console.error('Error loading sessions:', error);
+      toast.error('Failed to load chat sessions');
     }
   };
 
@@ -108,7 +104,8 @@ export default function ChatInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput) return;
 
     try {
       setIsLoading(true);
@@ -117,41 +114,67 @@ export default function ChatInterface() {
         throw new Error('OpenAI service not initialized');
       }
 
-      // Add user message to the UI
-      const userMessage = { role: 'user', content: input } as Message;
+      // Add user message to the UI and clear input
+      const userMessage: Message = {
+        role: 'user',
+        content: trimmedInput,
+        timestamp: new Date()
+      };
       setMessages(prev => [...prev, userMessage]);
       setInput('');
 
-      // Create a new session if none exists
-      if (!currentSession) {
-        const sessionId = await openAIService.current.createNewSession();
-        setCurrentSession(sessionId);
-        await loadSessions();
-      } else {
+      try {
+        // Create a new session if none exists
+        if (!currentSession) {
+          const sessionId = await openAIService.current.createNewSession();
+          if (!sessionId) throw new Error('Failed to create session');
+          setCurrentSession(sessionId);
+          await loadSessions();
+        }
+
         // Make sure OpenAI service has the current session ID
-        openAIService.current.setSessionId(currentSession);
+        openAIService.current.setSessionId(currentSession!);
+      } catch (error) {
+        console.error('Session error:', error);
+        toast.error('Error managing chat session');
+        setIsLoading(false);
+        return;
       }
 
       // Show processing message
-      const processingMessage = {
+      const processingMessage: Message = {
         role: 'assistant',
-        content: '⌛ Đang tìm kiếm thông tin...'
-      } as Message;
+        content: PROCESSING_MESSAGE,
+        timestamp: new Date()
+      };
       setMessages(prev => [...prev, processingMessage]);
 
       // Send message and get response
       const response = await openAIService.current.sendMessage(
-        input,
+        trimmedInput,
         messages.slice(-5).map(msg => msg.content)
       );
+
+      if (!response) throw new Error('No response received');
 
       // Update UI with actual response
       setMessages(prev => {
         const updatedMessages = [...prev];
-        updatedMessages[updatedMessages.length - 1] = {
-          role: 'assistant',
-          content: response
-        } as Message;
+        // Only replace the last message if it's the processing message
+        if (updatedMessages[updatedMessages.length - 1]?.content === PROCESSING_MESSAGE) {
+          updatedMessages[updatedMessages.length - 1] = {
+            role: 'assistant',
+            content: response,
+            timestamp: new Date()
+          };
+        } else {
+          // If somehow the processing message was removed, add the response as a new message
+          updatedMessages.push({
+            role: 'assistant',
+            content: response,
+            timestamp: new Date()
+          });
+        }
         return updatedMessages;
       });
 
@@ -160,11 +183,11 @@ export default function ChatInterface() {
 
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Error sending message');
+      toast.error(error instanceof Error ? error.message : 'Error sending message');
 
       // Remove processing message on error
       setMessages(prev =>
-        prev.filter(msg => msg.content !== '⌛ Đang tìm kiếm thông tin...')
+        prev.filter(msg => msg.content !== PROCESSING_MESSAGE)
       );
     } finally {
       setIsLoading(false);
@@ -208,7 +231,7 @@ export default function ChatInterface() {
             </div>
           </Menu.Items>
         </Menu>
-        <h1 className="text-lg md:text-xl font-semibold">Lạc Chatbot</h1>
+        <h1 className="text-lg md:text-xl font-semibold">Vừng ơi</h1>
         <div className="w-10" /> {/* Spacer to balance the header */}
       </div>
 
@@ -223,9 +246,9 @@ export default function ChatInterface() {
             <ul className="space-y-2">
               {sessions.map(session => (
                 <li
-                  key={session._id}
+                  key={session.sessionId}
                   className="border rounded-lg p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer touch-manipulation"
-                  onClick={() => loadSession(session._id)}
+                  onClick={() => loadSession(session.sessionId)}
                 >
                   <h3 className="font-medium text-base md:text-lg">{session.title}</h3>
                   <p className="text-sm text-gray-500 mt-1">

@@ -1,5 +1,5 @@
-import { ChatHistoryService } from '@/lib/db/chatHistory';
-import { initializeMongoDBForAPI } from '@/lib/db/initMongoDB';
+import { ChatHistoryService } from '@/database/chatHistory';
+import { initializeMongoDBForAPI } from '@/database/initMongoDB';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {

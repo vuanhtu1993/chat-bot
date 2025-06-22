@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { initializeMongoDBForAPI } from "../lib/db/initMongoDB";
+import { initializeMongoDBForAPI } from "../database/initMongoDB";
 
 // Tạo một component để khởi tạo DB
 async function InitDB() {

@@ -1,56 +1,12 @@
 import axios from 'axios';
-
-interface OpenAIConfig {
-  model?: string;
-  temperature?: number;
-  functions?: boolean;
-  saveHistory?: boolean;
-}
+import { OpenAIConfig, ChatMessage, ChatCompletionResponse, ChatSession } from './interfaces/openai.interface';
+import { API_ENDPOINTS, searchGoogleFunction } from './functions/openai.functions';
 
 const defaultConfig: OpenAIConfig = {
   model: 'gpt-4.1-nano',
   temperature: 0.7,
   functions: true,
   saveHistory: true,
-};
-
-interface ChatMessage {
-  role: 'user' | 'assistant' | 'system' | 'function';
-  content: string;
-}
-
-// Define the functions that can be called
-export const availableFunctions = {
-  search_google: async (args: { query: string }): Promise<any> => {
-    try {
-      const response = await axios.post('/api/chat-completion', {
-        messages: [
-          { role: 'user', content: args.query }
-        ],
-        config: {
-          functions: [{
-            name: 'search_google',
-            description: 'Search Google for real-time information',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Search query',
-                },
-              },
-              required: ['query'],
-            },
-          }],
-        }
-      });
-
-      return response.data.functionCall?.result || { results: [], totalResults: 0 };
-    } catch (error) {
-      console.error('Error searching Google:', error);
-      return { results: [], totalResults: 0, error: 'Error searching Google' };
-    }
-  }
 };
 
 export class OpenAIService {
@@ -101,21 +57,19 @@ export class OpenAIService {
   /**
    * Save message to chat history
    */
-  private async saveToChatHistory(role: 'user' | 'assistant' | 'system' | 'function', content: string) {
+  private async saveToChatHistory(role: ChatMessage['role'], content: string) {
     if (!this.config.saveHistory) return;
 
     try {
-      // Create new session if none exists
       if (!this.sessionId) {
         await this.createNewSession();
       }
 
-      // Save message to database
-      await axios.post('/api/chat', {
+      await axios.post(API_ENDPOINTS.CHAT, {
         sessionId: this.sessionId,
         role,
         content,
-        userId: undefined // Optional user ID
+        userId: undefined
       });
     } catch (error) {
       console.error('Error saving to chat history:', error);
@@ -141,9 +95,9 @@ export class OpenAIService {
   /**
    * Get all chat sessions
    */
-  async getChatSessions(): Promise<any[]> {
+  async getChatSessions(): Promise<ChatSession[]> {
     try {
-      const response = await axios.get('/api/chat');
+      const response = await axios.get(API_ENDPOINTS.CHAT);
       return response.data.sessions || [];
     } catch (error) {
       console.error('Error loading sessions:', error);
@@ -151,48 +105,31 @@ export class OpenAIService {
     }
   }
 
-  async sendMessage(message: string, context: string[] = []) {
+  async sendMessage(message: string, context: string[] = []): Promise<string> {
     try {
-      // Save user message to history first
       await this.saveToChatHistory('user', message);
 
       const messages = [
         {
-          role: 'system',
+          role: 'system' as const,
           content: 'You are Trợ lý cá nhân của Anh Tú, a helpful AI assistant. Use the search_google function when you need real-time information or need to verify facts.'
         },
-        ...context.map(msg => ({ role: 'user', content: msg })),
-        { role: 'user', content: message }
+        ...context.map(msg => ({ role: 'user' as const, content: msg })),
+        { role: 'user' as const, content: message }
       ];
 
-      const response = await axios.post('/api/chat-completion', {
+      const response = await axios.post<ChatCompletionResponse>(API_ENDPOINTS.CHAT_COMPLETION, {
         messages,
         config: {
           model: this.config.model,
           temperature: this.config.temperature,
-          functions: this.config.functions ? [{
-            name: 'search_google',
-            description: 'Search Google for real-time information',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Search query',
-                },
-              },
-              required: ['query'],
-            },
-          }] : undefined,
+          functions: this.config.functions ? [searchGoogleFunction] : undefined,
         }
       });
 
       const finalResponse = response.data.response;
-
-      // Save assistant response to history
       await this.saveToChatHistory('assistant', finalResponse);
 
-      // If there was a function call, save that to history too
       if (response.data.functionCall) {
         await this.saveToChatHistory(
           'function',
