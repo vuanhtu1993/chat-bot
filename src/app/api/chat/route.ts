@@ -1,57 +1,64 @@
-import { NextResponse } from 'next/server';
 import { ChatHistoryService } from '@/lib/db/chatHistory';
 import { initializeMongoDBForAPI } from '@/lib/db/initMongoDB';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    // Initialize MongoDB connection at API start
     await initializeMongoDBForAPI();
 
+    const data = await request.json();
+    const { sessionId, role, content, userId } = data;
+
     const chatHistoryService = new ChatHistoryService();
-    const { sessionId, role, content, userId } = await req.json();
 
     if (!sessionId) {
-      // Tạo session mới nếu chưa có
+      // Create new session
       const newSessionId = await chatHistoryService.createSession(userId);
-      await chatHistoryService.saveMessage(newSessionId, role, content, userId);
-      return NextResponse.json({ success: true, sessionId: newSessionId });
-    }
+      console.log('New session created with ID:', newSessionId);
 
-    // Lưu tin nhắn vào session có sẵn
-    await chatHistoryService.saveMessage(sessionId, role, content, userId);
-    return NextResponse.json({ success: true, sessionId });
+      // Save initial message if provided
+      if (role && content) {
+        await chatHistoryService.saveMessage(newSessionId, role, content, userId);
+      }
+
+      const savedSession = await chatHistoryService.getSession(newSessionId);
+      return NextResponse.json({ ...savedSession, sessionId: newSessionId });
+    } else {
+      // Save message to existing session
+      await chatHistoryService.saveMessage(sessionId, role, content, userId);
+      return NextResponse.json({ success: true, sessionId });
+    }
   } catch (error: any) {
-    console.error('Error saving chat message:', error);
+    console.error('Error saving data:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to save message' },
+      { error: error.message || 'Failed to save data' },
       { status: 500 }
     );
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    // Initialize MongoDB connection at API start
     await initializeMongoDBForAPI();
 
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('sessionId');
+    const userId = searchParams.get('userId');
     const chatHistoryService = new ChatHistoryService();
-    const url = new URL(req.url);
-    const sessionId = url.searchParams.get('sessionId');
 
-    // Nếu có sessionId, trả về tin nhắn của session đó
     if (sessionId) {
+      // Get messages for a specific session
       const messages = await chatHistoryService.getMessages(sessionId);
       return NextResponse.json({ messages });
+    } else {
+      // Get all sessions
+      const sessions = await chatHistoryService.getSessions(userId || undefined);
+      return NextResponse.json({ sessions });
     }
-
-    // Nếu không có sessionId, trả về danh sách sessions
-    const userId = url.searchParams.get('userId') || undefined;
-    const sessions = await chatHistoryService.getSessions(userId);
-    return NextResponse.json({ sessions });
   } catch (error: any) {
-    console.error('Error fetching chat history:', error);
+    console.error('Error fetching data:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch chat history' },
+      { error: error.message || 'Failed to fetch data' },
       { status: 500 }
     );
   }

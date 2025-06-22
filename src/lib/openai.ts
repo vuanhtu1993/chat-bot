@@ -14,11 +14,6 @@ const defaultConfig: OpenAIConfig = {
   saveHistory: true,
 };
 
-interface FunctionCall {
-  name: string;
-  arguments: any;
-}
-
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system' | 'function';
   content: string;
@@ -113,14 +108,16 @@ export class OpenAIService {
     try {
       const response = await axios.post('/api/chat', {
         role: 'system',
-        content: 'Bắt đầu cuộc trò chuyện mới'
+        content: 'Bắt đầu cuộc trò chuyện mới',
+        userId: undefined // Optional user ID if you want to track per-user sessions
       });
 
-      this.sessionId = response.data.sessionId;
-      if (!this.sessionId) {
+      const sessionId = response.data.sessionId;
+      if (!sessionId) {
         throw new Error('Session ID not returned from server');
       }
-      return this.sessionId;
+      this.sessionId = sessionId;
+      return sessionId;
     } catch (error) {
       console.error('Error creating session:', error);
       throw error;
@@ -134,24 +131,17 @@ export class OpenAIService {
     if (!this.config.saveHistory) return;
 
     try {
-      // Đảm bảo có sessionId trước khi lưu tin nhắn
+      // Create new session if none exists
       if (!this.sessionId) {
-        const response = await axios.post('/api/chat', {
-          role: 'system',
-          content: 'Bắt đầu cuộc trò chuyện mới'
-        });
-
-        this.sessionId = response.data.sessionId;
-        if (!this.sessionId) {
-          throw new Error('Failed to create new session');
-        }
+        await this.createNewSession();
       }
 
-      // Lưu tin nhắn vào database
+      // Save message to database
       await axios.post('/api/chat', {
         sessionId: this.sessionId,
         role,
-        content
+        content,
+        userId: undefined // Optional user ID
       });
     } catch (error) {
       console.error('Error saving to chat history:', error);

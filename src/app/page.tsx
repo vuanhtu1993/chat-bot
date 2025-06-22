@@ -1,6 +1,4 @@
 'use client';
-
-import Image from "next/image";
 import ChatInterface from '@/components/ChatInterface';
 import SettingsComponent from '@/components/SettingsComponent';
 

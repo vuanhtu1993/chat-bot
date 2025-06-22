@@ -1,13 +1,19 @@
-import { NextResponse } from 'next/server';
 import { ChatHistoryService } from '@/lib/db/chatHistory';
 import { initializeMongoDBForAPI } from '@/lib/db/initMongoDB';
+import { NextResponse } from 'next/server';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request) {
   try {
-    // Initialize MongoDB connection at API start
     await initializeMongoDBForAPI();
 
-    const sessionId = params.id;
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('id');
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
     const chatHistoryService = new ChatHistoryService();
 
     const session = await chatHistoryService.getSession(sessionId);
@@ -29,9 +35,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request) {
   try {
-    const sessionId = params.id;
+    await initializeMongoDBForAPI();
+
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('id');
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
     const chatHistoryService = new ChatHistoryService();
 
     await chatHistoryService.deleteSession(sessionId);
@@ -46,10 +61,21 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request) {
   try {
-    const sessionId = params.id;
-    const { title } = await req.json();
+    await initializeMongoDBForAPI();
+
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('id');
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const data = await request.json();
+    const { title } = data;
     const chatHistoryService = new ChatHistoryService();
 
     await chatHistoryService.updateSessionTitle(sessionId, title);
