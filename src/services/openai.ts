@@ -4,7 +4,6 @@ import {
   Message,
   ChatCompletionResponse,
   ChatSession,
-  FunctionCallResult
 } from '../types/chat.types';
 import { API_ENDPOINTS, searchGoogleFunction } from './functions/openai.functions';
 

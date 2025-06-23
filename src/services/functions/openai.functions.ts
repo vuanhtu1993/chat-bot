@@ -1,5 +1,6 @@
+import { SearchGoogleResponse } from '@/types/chat.types';
 import axios from 'axios';
-import { SearchGoogleResponse } from '../interfaces/openai.interface';
+
 
 export const API_ENDPOINTS = {
   CHAT: '/api/chat',
