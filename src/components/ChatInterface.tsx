@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   PaperAirplaneIcon,
   MicrophoneIcon,
@@ -13,6 +13,8 @@ import { toast } from 'react-hot-toast';
 import { OpenAIService } from '@/services/openai';
 import SettingsComponent from './SettingsComponent';
 import { Message, ChatSession, PROCESSING_MESSAGE } from '@/types/chat.types';
+import Sidebar from './Sidebar';
+import ChatMessageList from './ChatMessageList';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -195,123 +197,86 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with dropdown menu */}
-      <div className="flex justify-between items-center p-3 md:p-4 border-b bg-white shadow-sm">
-        <Menu as="div" className="relative">
-          <Menu.Button className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation">
-            <Bars3Icon className="w-6 h-6 text-gray-600" />
-          </Menu.Button>
-          <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-            <div className="px-1 py-1">
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => setShowSessions(!showSessions)}
-                    className={`${active ? 'bg-gray-100' : ''
-                      } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
-                  >
-                    <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-3 text-gray-600" />
-                    Lịch sử trò chuyện
-                  </button>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={startNewSession}
-                    className={`${active ? 'bg-gray-100' : ''
-                      } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
-                  >
-                    <ArrowPathIcon className="w-5 h-5 mr-3 text-red-600" />
-                    Tạo cuộc trò chuyện mới
-                  </button>
-                )}
-              </Menu.Item>
-            </div>
-          </Menu.Items>
-        </Menu>
-        <h1 className="text-lg md:text-xl font-semibold">Vừng ơi</h1>
-        <div className="w-10" /> {/* Spacer to balance the header */}
-      </div>
-
-      {/* Settings Modal */}
-      {showSettings && <SettingsComponent onClose={() => setShowSettings(false)} />}
-
-      {/* Chat Sessions List - Now more touch-friendly */}
-      {showSessions ? (
-        <div className="flex-1 overflow-y-auto bg-white p-3 md:p-4">
-          <h2 className="text-lg font-medium mb-4">Lịch sử trò chuyện</h2>
-          {sessions.length > 0 ? (
-            <ul className="space-y-2">
-              {sessions.map(session => (
-                <li
-                  key={session.sessionId}
-                  className="border rounded-lg p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer touch-manipulation"
-                  onClick={() => loadSession(session.sessionId)}
-                >
-                  <h3 className="font-medium text-base md:text-lg">{session.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {new Date(session.updatedAt).toLocaleString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 text-center py-4">Không có lịch sử trò chuyện</p>
-          )}
-        </div>
-      ) : (
-        /* Chat Messages - Now more touch-friendly */
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-3 md:p-4 space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-3 md:p-4 ${message.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-800 shadow-sm'
-                  }`}
-              >
-                {message.content}
+    <div className="h-full grid grid-cols-3 gap-4">
+      {/* Side bar */}
+      <Sidebar sessions={sessions} loadSession={loadSession} startNewSession={startNewSession} />
+      {/* Main */}
+      <main className="col-span-2 flex flex-col h-full bg-gray-100">
+        {/* Header with dropdown menu */}
+        <div className="container mx-auto flex justify-between items-center p-3 md:p-4 border-b bg-white shadow-sm">
+          <Menu as="div" className="relative">
+            <Menu.Button className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation">
+              <Bars3Icon className="w-6 h-6 text-gray-600" />
+            </Menu.Button>
+            <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+              <div className="px-1 py-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={() => setShowSessions(!showSessions)}
+                      className={`${active ? 'bg-gray-100' : ''
+                        } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
+                    >
+                      <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-3 text-gray-600" />
+                      Lịch sử trò chuyện
+                    </button>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={startNewSession}
+                      className={`${active ? 'bg-gray-100' : ''
+                        } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
+                    >
+                      <ArrowPathIcon className="w-5 h-5 mr-3 text-red-600" />
+                      Tạo cuộc trò chuyện mới
+                    </button>
+                  )}
+                </Menu.Item>
               </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
+            </Menu.Items>
+          </Menu>
+          <h1 className="text-lg md:text-xl font-semibold">Vừng ơi</h1>
+          <div className="w-10" /> {/* Spacer to balance the header */}
         </div>
-      )}
 
-      {/* Input Form - Now more touch-friendly */}
-      <form onSubmit={handleSubmit} className="p-3 md:p-4 border-t bg-white">
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            className="p-2 text-gray-500 hover:text-gray-700 active:text-gray-900 transition-colors touch-manipulation"
-            onClick={() => {
-              // Voice input implementation
-            }}
-          >
-            <MicrophoneIcon className="w-6 h-6" />
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Nhập tin nhắn..."
-            className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-            disabled={isLoading || showSessions}
-          />
-          <button
-            type="submit"
-            className="p-2 text-blue-500 hover:text-blue-700 active:text-blue-900 transition-colors disabled:opacity-50 touch-manipulation"
-            disabled={isLoading || showSessions || !input.trim()}
-          >
-            <PaperAirplaneIcon className="w-6 h-6" />
-          </button>
-        </div>
-      </form>
+        {/* Settings Modal */}
+        {showSettings && <SettingsComponent onClose={() => setShowSettings(false)} />}
+
+        {/* Chat Messages List */}
+        <ChatMessageList messages={messages} messagesEndRef={messagesEndRef} />
+
+        {/* Input Form - Now more touch-friendly */}
+        <form onSubmit={handleSubmit} className="p-3 md:p-4 border-t bg-white">
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              className="p-2 text-gray-500 hover:text-gray-700 active:text-gray-900 transition-colors touch-manipulation"
+              onClick={() => {
+                // Voice input implementation
+              }}
+            >
+              <MicrophoneIcon className="w-6 h-6" />
+            </button>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Nhập tin nhắn..."
+              className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+              disabled={isLoading || showSessions}
+            />
+            <button
+              type="submit"
+              className="p-2 text-blue-500 hover:text-blue-700 active:text-blue-900 transition-colors disabled:opacity-50 touch-manipulation"
+              disabled={isLoading || showSessions || !input.trim()}
+            >
+              <PaperAirplaneIcon className="w-6 h-6" />
+            </button>
+          </div>
+        </form>
+      </main>
     </div>
   );
 }

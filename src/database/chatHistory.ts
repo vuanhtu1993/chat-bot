@@ -1,22 +1,6 @@
 import clientPromise from './mongodb';
 import { ObjectId } from 'mongodb';
-
-export interface ChatMessage {
-  userId?: string;
-  role: 'user' | 'assistant' | 'system' | 'function';
-  content: string;
-  timestamp: Date;
-  sessionId: string;
-}
-
-export interface ChatSession {
-  _id?: string | ObjectId;
-  userId?: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-  messages: ChatMessage[];
-}
+import { ChatSession, Message } from '../types/chat.types';
 
 export class ChatHistoryService {
   private client: any;
@@ -72,7 +56,7 @@ export class ChatHistoryService {
   ): Promise<void> {
     await this.ensureInitialized();
 
-    const message: ChatMessage = {
+    const message: Message = {
       userId,
       role,
       content,
@@ -129,7 +113,7 @@ export class ChatHistoryService {
   /**
    * Lấy tin nhắn của 1 session
    */
-  async getMessages(sessionId: string): Promise<ChatMessage[]> {
+  async getMessages(sessionId: string): Promise<Message[]> {
     await this.ensureInitialized();
 
     const session = await this.getSession(sessionId);

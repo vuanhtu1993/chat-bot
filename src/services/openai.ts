@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { OpenAIConfig, ChatMessage, ChatCompletionResponse, ChatSession } from './interfaces/openai.interface';
+import {
+  OpenAIConfig,
+  Message,
+  ChatCompletionResponse,
+  ChatSession,
+  FunctionCallResult
+} from '../types/chat.types';
 import { API_ENDPOINTS, searchGoogleFunction } from './functions/openai.functions';
 
 const defaultConfig: OpenAIConfig = {
@@ -57,7 +63,7 @@ export class OpenAIService {
   /**
    * Save message to chat history
    */
-  private async saveToChatHistory(role: ChatMessage['role'], content: string) {
+  private async saveToChatHistory(role: Message['role'], content: string) {
     if (!this.config.saveHistory) return;
 
     try {
@@ -80,7 +86,7 @@ export class OpenAIService {
   /**
    * Load chat history from a session
    */
-  async loadChatHistory(sessionId: string): Promise<ChatMessage[]> {
+  async loadChatHistory(sessionId: string): Promise<Message[]> {
     try {
       this.sessionId = sessionId;
 
