@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   PaperAirplaneIcon,
   MicrophoneIcon,
+  Bars3Icon,
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
@@ -53,23 +54,31 @@ export default function ChatInterface() {
     }
   };
 
-  const startNewSession = async () => {
+  const handleDeleteSession = async (sessionId: string) => {
     if (!openAIService.current) return;
 
     try {
-      // Clear messages
-      setMessages([]);
+      await openAIService.current.deleteSession(sessionId);
 
-      // Create new session
-      const sessionId = await openAIService.current.createNewSession();
-      setCurrentSession(sessionId);
+      // If deleted current session, clear the UI
+      if (currentSession === sessionId) {
+        setMessages([]);
+        setCurrentSession(null);
+      }
 
       // Reload sessions list
       await loadSessions();
+      toast.success('Session deleted successfully');
     } catch (error) {
-      console.error('Error creating new session:', error);
-      toast.error('Failed to create new session');
+      console.error('Error deleting session:', error);
+      toast.error('Failed to delete session');
     }
+  };
+
+  const startNewSession = () => {
+    // Just clear the UI state
+    setMessages([]);
+    setCurrentSession(null);
   };
 
   const loadSession = async (sessionId: string) => {
@@ -124,7 +133,7 @@ export default function ChatInterface() {
       try {
         // Create a new session if none exists
         if (!currentSession) {
-          const sessionId = await openAIService.current.createNewSession();
+          const sessionId = await openAIService.current.createNewSession(trimmedInput);
           if (!sessionId) throw new Error('Failed to create session');
           setCurrentSession(sessionId);
           await loadSessions();
@@ -200,13 +209,21 @@ export default function ChatInterface() {
         sessions={sessions}
         loadSession={loadSession}
         startNewSession={startNewSession}
+        onDeleteSession={handleDeleteSession}
         toggleSidebar={() => setShowSideBar(!showSideBar)}
       />
       {/* Main */}
       <main className="flex-1 flex flex-col h-full bg-gray-100">
         {/* Header with dropdown menu */}
         <div className="flex justify-between items-center p-3 md:p-4 bg-white shadow-sm">
+          <button
+            onClick={() => setShowSideBar(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <Bars3Icon className="w-6 h-6" />
+          </button>
           <Image src="/vai2.png" alt="Logo" width={100} height={40} />
+          <div className="w-6" /> {/* Spacer for alignment */}
         </div>
 
         {/* Settings Modal */}

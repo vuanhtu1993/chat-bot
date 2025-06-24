@@ -39,11 +39,11 @@ export class OpenAIService {
   /**
    * Create a new session and return its ID
    */
-  async createNewSession(): Promise<string> {
+  async createNewSession(message: string): Promise<string> {
     try {
       const response = await axios.post('/api/chat', {
-        role: 'system',
-        content: 'Bắt đầu cuộc trò chuyện mới',
+        role: 'user',
+        content: message,
         userId: undefined // Optional user ID if you want to track per-user sessions
       });
 
@@ -67,7 +67,7 @@ export class OpenAIService {
 
     try {
       if (!this.sessionId) {
-        await this.createNewSession();
+        throw new Error('No active session. Call createNewSession first.');
       }
 
       await axios.post(API_ENDPOINTS.CHAT, {
@@ -112,6 +112,9 @@ export class OpenAIService {
 
   async sendMessage(message: string, context: string[] = []): Promise<string> {
     try {
+      if (!this.sessionId) {
+        await this.createNewSession(message);
+      }
       await this.saveToChatHistory('user', message);
 
       const messages = [
@@ -145,6 +148,36 @@ export class OpenAIService {
       return finalResponse;
     } catch (error) {
       console.error('Error calling chat API:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a session
+   * @param sessionId ID of the session to delete
+   * @returns true if deletion was successful
+   * @throws Error if sessionId is missing or deletion fails
+   */
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      if (!sessionId) {
+        throw new Error('Session ID is required');
+      }
+
+      // Use RESTful endpoint with DELETE method
+      const response = await axios.delete(`${API_ENDPOINTS.CHAT}/${sessionId}`);
+
+      // Update local state if deletion was successful
+      if (response.status === 200) {
+        if (this.sessionId === sessionId) {
+          this.sessionId = null;
+        }
+        return true;
+      }
+
+      throw new Error('Failed to delete session');
+    } catch (error) {
+      console.error('Error deleting session:', error);
       throw error;
     }
   }

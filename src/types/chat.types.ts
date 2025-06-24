@@ -10,11 +10,11 @@ export interface Message {
 // Session Types
 export interface ChatSession {
   _id?: string;
-  userId?: string;
   messages: Message[];
-  title: string;
-  createdAt: Date;
   updatedAt: Date;
+  createdAt: Date;
+  userId?: string;
+  title?: string; // Optional title for the session
 }
 
 // OpenAI Service Types

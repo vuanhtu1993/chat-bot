@@ -1,61 +1,72 @@
 import { ChatSession } from "../types/chat.types";
 import SessionItem from "./SessionItem";
-import { PlusCircleIcon, Bars3Icon } from '@heroicons/react/24/outline'
+import { PlusCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 type PropTypes = {
+  show: boolean;
   sessions: ChatSession[];
   loadSession: (sessionId: string) => void;
   startNewSession: () => void;
-  toggleSidebar?: () => void;
-  show: boolean;
-}
+  onDeleteSession: (sessionId: string) => Promise<void>;
+  toggleSidebar: () => void;
+};
 
-const Sidebar = ({ sessions, loadSession, startNewSession, show, toggleSidebar }: PropTypes) => {
+const Sidebar = ({ show, sessions, loadSession, startNewSession, onDeleteSession, toggleSidebar }: PropTypes) => {
   return (
-    <div>
-      <div className="ml-4 p-2 rounded-full hover:bg-gray-100 bg-gray-200 transition-colors touch-manipulation">
-        <button onClick={toggleSidebar} className="flex items-center space-x-2">
-          <Bars3Icon className="w-6 h-6 text-gray-600" />
-        </button>
-      </div>
-      <div className={`${show ? "block" : "hidden"} max-w-[300px] flex-col justify-between border-e border-gray-100 bg-white`}>
-        <div className="px-4 py-6">
-          <ul className="space-y-1">
-            <li>
-              <button
-                onClick={() => startNewSession()}
-                className="cursor-pointer hover:bg-green-700 block hover:text-white rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700"
-              >
-                <PlusCircleIcon className="h-5 w-5 inline-block mr-2" />
-                Cuộc trò chuyện mới
-              </button>
-            </li>
-            <li>
-              <div className="flex-1 overflow-y-auto bg-white mt-2">
-                <h2 className="text-lg font-medium mb-4">Lịch sử trò chuyện</h2>
-                {sessions.length > 0 ? (
-                  <ul className="space-y-2 text-sm overflow-auto max-h-[calc(100vh-220px)]">
-                    {sessions
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                      .map(session => (
-                        <li
-                          key={session._id}
-                          onClick={() => loadSession(session._id!)}
-                          className="cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
-                        >
-                          <SessionItem session={session} />
-                        </li>
-                      ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">Không có lịch sử trò chuyện</p>
-                )}
-              </div>
-            </li>
-          </ul>
+    <>
+      <div
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-200 ${show ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        onClick={toggleSidebar}
+      />
+      <aside
+        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-lg z-50 transform transition-transform duration-200 ${show ? 'translate-x-0' : '-translate-x-full'
+          }`}
+      >
+        <div className="p-4 h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Lịch sử trò chuyện</h2>
+            <button
+              onClick={toggleSidebar}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* New Chat Button */}
+          <button
+            onClick={() => {
+              startNewSession();
+              toggleSidebar();
+            }}
+            className="w-full py-2 mb-4 text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-center gap-2"
+          >
+            <PlusCircleIcon className="w-5 h-5" />
+            Cuộc trò chuyện mới
+          </button>
+
+          {/* Sessions List */}
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {sessions.length > 0 ? (
+              sessions
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map(session => (
+                  <SessionItem
+                    key={session._id}
+                    session={session}
+                    onSelect={loadSession}
+                    onDelete={onDeleteSession}
+                  />
+                ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">Không có lịch sử trò chuyện</p>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   )
 }
 

@@ -1,6 +1,6 @@
-import clientPromise from './mongodb';
 import { ObjectId } from 'mongodb';
-import { ChatSession, Message } from '../types/chat.types';
+import { ChatSession, Message } from '@/types/chat.types';
+import clientPromise from './mongodb';
 
 export class ChatHistoryService {
   private client: any;
@@ -123,12 +123,25 @@ export class ChatHistoryService {
   /**
    * Xóa session theo ID
    */
-  async deleteSession(sessionId: string): Promise<void> {
-    await this.ensureInitialized();
+  async deleteSession(sessionId: string): Promise<boolean> {
+    const client = await clientPromise;
+    const db = client.db();
 
-    await this.db.collection('chat_sessions').deleteOne({
+    // Delete the session
+    const result = await db.collection('chat_sessions').deleteOne({
       _id: new ObjectId(sessionId)
     });
+
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    // Delete all messages associated with this session
+    await db.collection('messages').deleteMany({
+      sessionId: sessionId
+    });
+
+    return true;
   }
 
   private async ensureInitialized() {
