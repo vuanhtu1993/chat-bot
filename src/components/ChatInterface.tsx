@@ -4,11 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   PaperAirplaneIcon,
   MicrophoneIcon,
-  ArrowPathIcon,
-  Bars3Icon,
-  ChatBubbleBottomCenterTextIcon
 } from '@heroicons/react/24/outline';
-import { Menu } from '@headlessui/react';
+import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import { OpenAIService } from '@/services/openai';
 import SettingsComponent from './SettingsComponent';
@@ -22,7 +19,7 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = useState<string | null>(null);
-  const [showSessions, setShowSessions] = useState(false);
+  const [showSideBar, setShowSideBar] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const openAIService = useRef<OpenAIService | null>(null);
@@ -87,7 +84,6 @@ export default function ChatInterface() {
       // Set current session and messages
       setCurrentSession(sessionId);
       setMessages(history);
-      setShowSessions(false);
     } catch (error) {
       console.error('Error loading session:', error);
       toast.error('Failed to load conversation history');
@@ -197,48 +193,20 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="h-full grid grid-cols-3 gap-4">
+    <div className="h-full flex">
       {/* Side bar */}
-      <Sidebar sessions={sessions} loadSession={loadSession} startNewSession={startNewSession} />
+      <Sidebar
+        show={showSideBar}
+        sessions={sessions}
+        loadSession={loadSession}
+        startNewSession={startNewSession}
+        toggleSidebar={() => setShowSideBar(!showSideBar)}
+      />
       {/* Main */}
-      <main className="col-span-2 flex flex-col h-full bg-gray-100">
+      <main className="flex-1 flex flex-col h-full bg-gray-100">
         {/* Header with dropdown menu */}
-        <div className="container mx-auto flex justify-between items-center p-3 md:p-4 border-b bg-white shadow-sm">
-          <Menu as="div" className="relative">
-            <Menu.Button className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation">
-              <Bars3Icon className="w-6 h-6 text-gray-600" />
-            </Menu.Button>
-            <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-              <div className="px-1 py-1">
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={() => setShowSessions(!showSessions)}
-                      className={`${active ? 'bg-gray-100' : ''
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
-                    >
-                      <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-3 text-gray-600" />
-                      Lịch sử trò chuyện
-                    </button>
-                  )}
-                </Menu.Item>
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={startNewSession}
-                      className={`${active ? 'bg-gray-100' : ''
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
-                    >
-                      <ArrowPathIcon className="w-5 h-5 mr-3 text-red-600" />
-                      Tạo cuộc trò chuyện mới
-                    </button>
-                  )}
-                </Menu.Item>
-              </div>
-            </Menu.Items>
-          </Menu>
-          <h1 className="text-lg md:text-xl font-semibold">Vừng ơi</h1>
-          <div className="w-10" /> {/* Spacer to balance the header */}
+        <div className="flex justify-between items-center p-3 md:p-4 bg-white shadow-sm">
+          <Image src="/vai2.png" alt="Logo" width={100} height={40} />
         </div>
 
         {/* Settings Modal */}
@@ -265,12 +233,11 @@ export default function ChatInterface() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Nhập tin nhắn..."
               className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-              disabled={isLoading || showSessions}
             />
             <button
+              disabled={isLoading}
               type="submit"
               className="p-2 text-blue-500 hover:text-blue-700 active:text-blue-900 transition-colors disabled:opacity-50 touch-manipulation"
-              disabled={isLoading || showSessions || !input.trim()}
             >
               <PaperAirplaneIcon className="w-6 h-6" />
             </button>
